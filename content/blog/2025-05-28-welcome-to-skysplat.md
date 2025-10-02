@@ -87,28 +87,6 @@ SkySplat is built on the principles of open source collaboration:
 - **Transparent Development**: All development happens in the open
 - **Educational Focus**: We prioritize learning and knowledge sharing
 
-## What's Next?
-
-We have exciting plans for the future:
-
-### Short Term (Q2-Q3 2025)
-- Enhanced viewport rendering performance
-- Additional import/export formats
-- Improved user interface and workflows
-- Comprehensive video tutorial series
-
-### Medium Term (Q4 2025)
-- Web-based 3DGS viewer and editor
-- Command-line tools for batch processing
-- Integration with other 3D software packages
-- Advanced editing and manipulation tools
-
-### Long Term (2026 and beyond)
-- Real-time collaborative editing
-- Cloud-based processing and storage
-- Mobile and VR/AR applications
-- Research tool integrations
-
 ## Community and Contributions
 
 SkySplat thrives on community involvement. Whether you're:
