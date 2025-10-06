@@ -4,7 +4,7 @@ date = 2025-09-30
 [taxonomies]
 tags = ["fundamentals", "mathematics", "3dgs", "theory"]
 [extra]
-author = "SkySplat Team"
+author = "kyjohnso"
 read_time = 12
 +++
 

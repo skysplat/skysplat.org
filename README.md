@@ -96,7 +96,7 @@ date = 2024-01-20
 categories = ["category1", "category2"]
 tags = ["tag1", "tag2"]
 [extra]
-author = "Author Name"
+author = "kyjohnso"
 +++
 
 Your content here...
@@ -130,7 +130,7 @@ date = 2024-01-20
 [taxonomies]
 tags = ["tag1", "tag2"]
 [extra]
-author = "Author Name"
+author = "kyjohnso"
 read_time = 10
 +++
 

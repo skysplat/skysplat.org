@@ -5,7 +5,7 @@ date = 2025-05-28
 categories = ["announcement", "blender", "3dgs"]
 tags = ["skysplat", "blender", "gaussian-splatting", "announcement"]
 [extra]
-author = "SkySplat Team"
+author = "kyjohnso"
 +++
 
 We're excited to announce the launch of **SkySplat**, an open-source initiative dedicated to making 3D Gaussian Splatting (3DGS) technology accessible to artists, researchers, and developers worldwide.
