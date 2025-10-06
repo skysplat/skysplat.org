@@ -18,6 +18,13 @@ description = "Your hub for 3D Gaussian Splatting in Blender and beyond"
   </div>
 </div>
 
+<div class="hero-image-container">
+  <div class="progressive-image-wrapper" data-lazy="true">
+    <img class="img-small" src="/images/lighthouse_rendered1_small.png" alt="Lighthouse 3DGS Render" />
+    <img class="img-large" data-src="/images/lighthouse_rendered1_medium.png" alt="Lighthouse 3DGS Render" />
+  </div>
+</div>
+
 ## 🎬 BlenderCon 2025 Talk
 
 Watch the full presentation from BlenderCon 2025 where we showcase SkySplat's capabilities and demonstrate real-world workflows for 3D Gaussian Splatting in Blender.
@@ -46,6 +53,12 @@ A comprehensive Blender addon for end-to-end 3D Gaussian Splatting workflows. Pr
 - 🎨 **Brush Training**: Configure and train 3D Gaussian Splatting models
 - 👁️ **Real-time Preview**: Visualize 3DGS results in Blender's viewport
 
+<div class="hero-image-container">
+  <div class="progressive-image-wrapper">
+    <img class="img-small" src="/images/sky_island_1_small.png" alt="3D Gaussian Splatting Scene" />
+    <img class="img-large" data-src="/images/sky_island_1_medium.png" alt="3D Gaussian Splatting Scene" />
+  </div>
+</div>
 
 ## What You'll Find Here
 
@@ -69,6 +82,13 @@ In-depth technical articles about 3DGS research, implementation details, and bes
 - **Photorealistic quality** from novel viewpoints  
 - **Efficient storage** and transmission
 - **Easy integration** with existing 3D pipelines
+
+<div class="hero-image-container">
+  <div class="progressive-image-wrapper" data-lazy="true">
+    <img class="img-small" src="/images/pumproom_7000_small.png" alt="Pumproom Interior 3DGS" />
+    <img class="img-large" data-src="/images/pumproom_7000_medium.png" alt="Pumproom Interior 3DGS" />
+  </div>
+</div>
 
 ## Getting Started
 

@@ -1,0 +1,20 @@
+{# Progressive Image Shortcode
+   Usage: {{ progressive_image(src="image.png", alt="Description", lazy=true) }}
+   
+   Parameters:
+   - src: Base image name (without _small/_medium suffix)
+   - alt: Alt text for the image
+   - lazy: Optional, defaults to false. Set to true for lazy loading
+   - class: Optional additional CSS classes
+#}
+
+{% set base_path = src | replace(from=".png", to="") | replace(from=".jpg", to="") | replace(from=".jpeg", to="") %}
+{% set ext = src | split(pat=".") | last %}
+{% set small_src = base_path ~ "_small." ~ ext %}
+{% set medium_src = base_path ~ "_medium." ~ ext %}
+{% set lazy_attr = lazy | default(value=false) %}
+
+<div class="progressive-image-wrapper{% if class %} {{ class }}{% endif %}"{% if lazy_attr %} data-lazy="true"{% endif %}>
+  <img class="img-small" src="{{ get_url(path='images/' ~ small_src) }}" alt="{{ alt }}" />
+  <img class="img-large" data-src="{{ get_url(path='images/' ~ medium_src) }}" alt="{{ alt }}" />
+</div>

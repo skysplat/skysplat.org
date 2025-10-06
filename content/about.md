@@ -72,6 +72,13 @@ Special thanks to:
 - Arthur Brussee for his Brush App
 - All contributors and users who help make SkySplat better
 
+<div class="hero-image-container">
+  <div class="progressive-image-wrapper" data-lazy="true">
+    <img class="img-small" src="/images/pumproom_7000_small.png" alt="3D Gaussian Splatting Interior Reconstruction" />
+    <img class="img-large" data-src="/images/pumproom_7000_medium.png" alt="3D Gaussian Splatting Interior Reconstruction" />
+  </div>
+</div>
+
 ---
 
 *SkySplat is an independent open-source project and is not affiliated with any commercial entity.*

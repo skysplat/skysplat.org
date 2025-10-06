@@ -12,7 +12,14 @@ A comprehensive introduction to the mathematical foundations and core concepts b
 
 <!-- more -->
 
-3D Gaussian Splatting (3DGS) represents a paradigm shift in how we approach real-time rendering of photorealistic 3D scenes. This article explores the mathematical foundations and core concepts that make this technology so powerful. 
+<div class="article-hero">
+  <div class="progressive-image-wrapper">
+    <img class="img-small" src="/images/pointcloud_portrait_small.png" alt="3D Gaussian Splatting Point Cloud Visualization" />
+    <img class="img-large" data-src="/images/pointcloud_portrait_medium.png" alt="3D Gaussian Splatting Point Cloud Visualization" />
+  </div>
+</div>
+
+3D Gaussian Splatting (3DGS) represents a paradigm shift in how we approach real-time rendering of photorealistic 3D scenes. This article explores the mathematical foundations and core concepts that make this technology so powerful.
 
 ## What Makes 3DGS Different?
 
