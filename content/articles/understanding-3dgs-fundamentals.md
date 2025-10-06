@@ -1,5 +1,5 @@
 +++
-title = "Understanding 3D Gaussian Splatting Fundamentals"
+title = "An Introduction to 3D Gaussian Splatting Fundamentals"
 date = 2025-09-30
 [taxonomies]
 tags = ["fundamentals", "mathematics", "3dgs", "theory"]
@@ -12,11 +12,11 @@ A comprehensive introduction to the mathematical foundations and core concepts b
 
 <!-- more -->
 
-3D Gaussian Splatting (3DGS) represents a paradigm shift in how we approach real-time rendering of photorealistic 3D scenes. This article explores the mathematical foundations and core concepts that make this technology so powerful.
+3D Gaussian Splatting (3DGS) represents a paradigm shift in how we approach real-time rendering of photorealistic 3D scenes. This article explores the mathematical foundations and core concepts that make this technology so powerful. 
 
 ## What Makes 3DGS Different?
 
-Traditional 3D rendering relies on polygonal meshes and complex lighting calculations. 3DGS takes a fundamentally different approach by representing scenes as collections of 3D Gaussian functions, each describing a small "splat" of color and opacity in 3D space.
+The idea of 3DGS is actually not new, though it has gained in popularity in the last 2 years. 
 
 ### Key Advantages
 
