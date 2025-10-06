@@ -37,14 +37,26 @@ G(\mathbf{x}) = \exp\left(-\frac{1}{2} (\mathbf{x} - \boldsymbol{\mu})^T \boldsy
 \]
 </div>
 
+<!-- IMAGE PLACEHOLDER: gaussian_function_3d.png
+Description: A 3D visualization showing a single Gaussian splat in 3D space. The image should display:
+- A semi-transparent ellipsoid representing the Gaussian distribution
+- The center point μ (mu) clearly marked with a dot or small sphere
+- Coordinate axes (X, Y, Z) for spatial reference
+- Color gradient from opaque at the center to transparent at the edges, showing the exponential falloff
+- Annotations pointing to the center (μ) and showing the spread in different directions
+- A cross-section view showing the bell curve profile
+- Grid or reference plane to show 3D positioning
+Style: Technical diagram with clean lines, using blue/cyan colors for the Gaussian, with mathematical annotations
+-->
+
 Where:
-- <span class="math-inline">\(\boldsymbol{\mu}\)</span> is the 3D position (mean)
-- <span class="math-inline">\(\boldsymbol{\Sigma}\)</span> is the 3×3 covariance matrix
-- <span class="math-inline">\(\mathbf{x}\)</span> is any point in 3D space
+- \\(\boldsymbol{\mu}\\) is the 3D position (mean)
+- \\(\boldsymbol{\Sigma}\\) is the 3×3 covariance matrix
+- \\(\mathbf{x}\\) is any point in 3D space
 
 ### Covariance Matrix Decomposition
 
-The covariance matrix <span class="math-inline">\(\boldsymbol{\Sigma}\)</span> is decomposed into:
+The covariance matrix \\(\boldsymbol{\Sigma}\\) is decomposed into:
 
 <div class="math-block">
 \[
@@ -52,14 +64,27 @@ The covariance matrix <span class="math-inline">\(\boldsymbol{\Sigma}\)</span> i
 \]
 </div>
 
+<!-- IMAGE PLACEHOLDER: covariance_decomposition.png
+Description: A multi-panel diagram showing the covariance matrix decomposition process:
+Panel 1: A sphere (identity covariance) labeled "Base Gaussian"
+Panel 2: The sphere scaled along axes (S matrix applied) showing an ellipsoid with different axis lengths, with arrows indicating scale factors sx, sy, sz
+Panel 3: The scaled ellipsoid rotated (R matrix applied) showing orientation change, with rotation arrows and angle indicators
+Panel 4: Final positioned Gaussian showing all transformations combined
+- Each panel should have the corresponding matrix notation (I, S, R, RSS^T R^T)
+- Use different colors for each axis (red=X, green=Y, blue=Z)
+- Show transformation arrows between panels
+- Include small 3×3 matrix representations next to each panel
+Style: Educational diagram with step-by-step transformation visualization, clean technical illustration
+-->
+
 Where:
-- <span class="math-inline">\(\mathbf{R}\)</span> is a rotation matrix (3×3)
-- <span class="math-inline">\(\mathbf{S}\)</span> is a scaling matrix (3×3 diagonal)
+- \\(\mathbf{R}\\) is a rotation matrix (3×3)
+- \\(\mathbf{S}\\) is a scaling matrix (3×3 diagonal)
 
 This decomposition allows independent control over:
-- **Position** (<span class="math-inline">\(\boldsymbol{\mu}\)</span>): Where the Gaussian is located
-- **Rotation** (<span class="math-inline">\(\mathbf{R}\)</span>): How it's oriented in space
-- **Scale** (<span class="math-inline">\(\mathbf{S}\)</span>): Its size along each axis
+- **Position** (\\(\boldsymbol{\mu}\\)): Where the Gaussian is located
+- **Rotation** (\\(\mathbf{R}\\)): How it's oriented in space
+- **Scale** (\\(\mathbf{S}\\)): Its size along each axis
 
 ### Spherical Harmonics
 
@@ -71,10 +96,22 @@ C(\mathbf{d}) = \sum_{l=0}^{L} \sum_{m=-l}^{l} c_l^m \cdot Y_l^m(\mathbf{d})
 \]
 </div>
 
+<!-- IMAGE PLACEHOLDER: spherical_harmonics_visualization.png
+Description: A comprehensive visualization of spherical harmonics for view-dependent color:
+- Central sphere showing a Gaussian splat with varying colors based on viewing angle
+- Multiple viewing directions shown as arrows/camera icons around the sphere (top, bottom, left, right, front, back)
+- Each viewing direction shows the resulting color appearance
+- Inset showing the first few spherical harmonic basis functions (Y_0^0, Y_1^-1, Y_1^0, Y_1^1) as colored spheres
+- Color gradient legend showing how SH coefficients blend to create view-dependent appearance
+- Example showing a reflective/specular surface where color changes dramatically with view angle
+- Annotations showing the viewing direction vector d and resulting color C(d)
+Style: Technical illustration with multiple viewpoints, using a color-coded system to show view dependency, semi-transparent overlays
+-->
+
 Where:
-- <span class="math-inline">\(\mathbf{d}\)</span> is the viewing direction
-- <span class="math-inline">\(c_l^m\)</span> are the SH coefficients
-- <span class="math-inline">\(Y_l^m\)</span> are the spherical harmonic basis functions
+- \\(\mathbf{d}\\) is the viewing direction
+- \\(c_l^m\\) are the SH coefficients
+- \\(Y_l^m\\) are the spherical harmonic basis functions
 
 ## Rendering Pipeline
 
@@ -88,9 +125,28 @@ Each 3D Gaussian is projected to screen space using the camera parameters:
 \]
 </div>
 
+<!-- IMAGE PLACEHOLDER: gaussian_projection_2d.png
+Description: A side-by-side comparison showing 3D to 2D projection:
+Left side (3D World Space):
+- A 3D Gaussian ellipsoid in world coordinates
+- Camera frustum showing the viewing volume
+- World coordinate axes
+- The covariance matrix Σ represented as the 3D ellipsoid shape
+Right side (2D Screen Space):
+- The projected 2D Gaussian ellipse on the screen/image plane
+- Screen coordinate system (pixel coordinates)
+- The projected covariance Σ' shown as a 2D ellipse
+- Projection lines connecting the 3D Gaussian to its 2D projection
+Center:
+- Transformation matrices W (world-to-camera) and J (Jacobian) shown as matrix notation
+- Arrows indicating the transformation flow
+- Multiple Gaussians at different depths to show perspective effects
+Style: Technical diagram with clear 3D-to-2D mapping, using perspective projection lines, dual-panel layout
+-->
+
 Where:
-- <span class="math-inline">\(\mathbf{J}\)</span> is the Jacobian of the projection
-- <span class="math-inline">\(\mathbf{W}\)</span> is the world-to-camera transformation
+- \\(\mathbf{J}\\) is the Jacobian of the projection
+- \\(\mathbf{W}\\) is the world-to-camera transformation
 
 ### 2. Alpha Blending
 
@@ -102,9 +158,31 @@ C = \sum_{i=1}^{N} c_i \cdot \alpha_i \cdot \prod_{j=1}^{i-1} (1 - \alpha_j)
 \]
 </div>
 
+<!-- IMAGE PLACEHOLDER: alpha_blending_process.png
+Description: A detailed visualization of the alpha blending process:
+Top section: Depth-sorted Gaussians
+- 4-5 overlapping Gaussian splats shown in depth order (back to front)
+- Each labeled with index i (i=1, i=2, i=3, etc.)
+- Depth values shown (z1 > z2 > z3...)
+- Each Gaussian has a color (c_i) and alpha (α_i) value displayed
+
+Middle section: Blending calculation
+- Step-by-step visualization showing the accumulation process
+- For each Gaussian, show: c_i × α_i × ∏(1-α_j)
+- Visual representation of how each layer contributes to final color
+- Transparency/opacity bars showing the (1-α) product term
+
+Bottom section: Final result
+- The final blended pixel color C
+- Comparison showing: individual Gaussians → blending process → final result
+- Color mixing visualization with contribution percentages
+
+Style: Educational diagram with layered transparency effects, color-coded Gaussians, mathematical notation overlays, flow arrows showing the blending sequence
+-->
+
 Where:
-- <span class="math-inline">\(c_i\)</span> is the color of Gaussian i
-- <span class="math-inline">\(\alpha_i\)</span> is its alpha value
+- \\(c_i\\) is the color of Gaussian i
+- \\(\alpha_i\\) is its alpha value
 - The product term handles occlusion
 
 ### 3. Optimization
@@ -117,10 +195,36 @@ The system is trained end-to-end using gradient descent on:
 \]
 </div>
 
+<!-- IMAGE PLACEHOLDER: optimization_loss_visualization.png
+Description: A comprehensive visualization of the optimization process:
+Top row: Training comparison
+- Left: Ground truth image (reference photograph)
+- Middle: Current rendered output from Gaussians
+- Right: Difference/error map highlighting discrepancies
+
+Middle section: Loss components
+- Panel 1: L1 color loss visualization (pixel-wise color differences shown as heatmap)
+- Panel 2: SSIM loss visualization (structural similarity map showing texture/pattern matching)
+- Combined loss graph showing how both terms contribute
+
+Bottom section: Optimization progress
+- Graph showing loss decreasing over iterations
+- Multiple rendered outputs at different training stages (iteration 100, 1000, 5000, 10000)
+- Visual improvement progression from blurry to sharp
+- Gaussian count evolution (showing densification/pruning)
+
+Annotations:
+- Mathematical notation for each loss term
+- Lambda weight indicator showing the balance between losses
+- Gradient flow arrows indicating parameter updates
+
+Style: Multi-panel technical diagram with before/after comparisons, heatmaps for loss visualization, training progress graphs, clean academic paper style
+-->
+
 Where:
-- <span class="math-inline">\(\mathcal{L}_{\text{color}}\)</span> is the L1 color loss
-- <span class="math-inline">\(\mathcal{L}_{\text{ssim}}\)</span> is the structural similarity loss
-- <span class="math-inline">\(\lambda_{\text{ssim}}\)</span> balances the two terms
+- \\(\mathcal{L}_{\text{color}}\\) is the L1 color loss
+- \\(\mathcal{L}_{\text{ssim}}\\) is the structural similarity loss
+- \\(\lambda_{\text{ssim}}\\) balances the two terms
 
 ## Implementation Considerations
 
