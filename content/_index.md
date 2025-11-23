@@ -42,16 +42,23 @@ Watch the full presentation from BlenderCon 2025 where we showcase SkySplat's ca
 
 
 
-## � SkySplat Blender Addon
+## 🛠️ SkySplat Blender Addon
 
-A comprehensive Blender addon for end-to-end 3D Gaussian Splatting workflows. Process drone footage, aerial photography, and ground-based captures into stunning 3DGS models.
+Blender addon for 3D Gaussian Splatting workflows. Process drone footage into 3DGS models.
 
-**Key Features:**
-- 🎥 **Video Processing**: Extract frames from drone footage and video files
-- 📸 **COLMAP Integration**: Run structure-from-motion directly in Blender
-- ✏️ **Point Cloud Editing**: Scale, rotate, and transform COLMAP reconstructions
-- 🎨 **Brush Training**: Configure and train 3D Gaussian Splatting models
-- 👁️ **Real-time Preview**: Visualize 3DGS results in Blender's viewport
+**New in v0.4.0:**
+- **Multi-Instance Workflow**: Manage multiple videos in one .blend file without file collisions
+- **Animated Camera Creation**: Generate camera animations from COLMAP reconstructions
+- **Blender 5.0 Support**: Compatible with Blender 5.0 and 4.0+
+
+**Features:**
+- Video processing and frame extraction
+- COLMAP integration with multi-instance support
+- Point cloud transformation
+- Brush training configuration
+- Viewport preview
+
+<a href="/blog/2025-11-22-skysplat-040-multi-instance-blender-50/" class="btn btn-primary">v0.4.0 Release Notes</a>
 
 <div class="hero-image-container">
   <div class="progressive-image-wrapper">

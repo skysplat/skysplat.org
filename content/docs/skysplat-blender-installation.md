@@ -25,11 +25,16 @@ This guide will walk you through installing the SkySplat Blender addon and all r
 
 ## Requirements
 
-- Blender 4.0.0 or newer
+- **Blender 5.0.0 or newer** (also compatible with Blender 4.0+)
 - COLMAP (for reconstruction features)
 - [Brush App](https://github.com/ArthurBrussee/brush) from Arthur Brussee
 
-**Note**: The [Brush App](https://github.com/ArthurBrussee/brush) for Gaussian Splatting is now bundled with the addon - no separate installation required!
+**Note**: The [Brush App](https://github.com/ArthurBrussee/brush) is bundled with the addon.
+
+**New in v0.4.0:**
+- Blender 5.0 compatibility
+- Multi-instance workflow
+- Animated camera creation
 
 ## Installation
 
@@ -97,14 +102,16 @@ After installing the SkySplat addon, you'll need to make the bundled brush binar
 **macOS/Linux:**
 1. Open Terminal
 2. Navigate to your Blender addons directory:
-   - **macOS**: `~/Library/Application Support/Blender/4.0/scripts/addons/skysplat_blender/binaries/`
-   - **Linux**: `~/.config/blender/4.0/scripts/addons/skysplat_blender/binaries/`
+   - **macOS (Blender 5.0)**: `~/Library/Application Support/Blender/5.0/scripts/addons/skysplat_blender/binaries/`
+   - **macOS (Blender 4.0)**: `~/Library/Application Support/Blender/4.0/scripts/addons/skysplat_blender/binaries/`
+   - **Linux (Blender 5.0)**: `~/.config/blender/5.0/scripts/addons/skysplat_blender/binaries/`
+   - **Linux (Blender 4.0)**: `~/.config/blender/4.0/scripts/addons/skysplat_blender/binaries/`
 3. Make the binary executable:
    ```bash
    # For macOS
    chmod +x brush_app_mac
    ```
- 
+
 
    ```bash
    # For Linux
@@ -180,6 +187,10 @@ blender
 
 **Windows:**
 ```cmd
+"C:\Program Files\Blender Foundation\Blender 5.0\blender.exe"
+```
+Or for Blender 4.0:
+```cmd
 "C:\Program Files\Blender Foundation\Blender 4.0\blender.exe"
 ```
 
@@ -209,7 +220,7 @@ After installation, verify the addon is working:
 ### Common Issues
 
 **Addon doesn't appear after installation**
-- Ensure you're using Blender 4.0 or later
+- Ensure you're using Blender 5.0 or Blender 4.0+
 - Check that the addon is enabled in Preferences
 - Restart Blender
 
