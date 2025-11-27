@@ -2,6 +2,34 @@
 
 {% block content %}
 <div class="home-container">
-    {{ section.content | safe }}
+    {% set blog_section = get_section(path="blog/_index.md") %}
+    {% set latest_post = blog_section.pages | first %}
+    
+    {# Split content on the marker #}
+    {% set content_parts = section.content | split(pat="<!-- INJECT_LATEST_BLOG_POST -->") %}
+    
+    {# Render first part (hero section) #}
+    {{ content_parts | first | safe }}
+    
+    {# Render latest blog post section #}
+    {% if blog_section.pages | length > 0 %}
+    <h2>📰 Latest: {{ latest_post.title }}</h2>
+    <p style="color: #666; margin-bottom: 1rem;">
+        <time datetime="{{ latest_post.date }}">{{ latest_post.date | date(format="%B %d, %Y") }}</time>
+    </p>
+    {% if latest_post.summary %}
+    <div class="post-summary">
+        {{ latest_post.summary | safe }}
+    </div>
+    {% elif latest_post.description %}
+    <p>{{ latest_post.description }}</p>
+    {% endif %}
+    <p><a href="{{ latest_post.permalink }}" class="btn btn-primary">Read Full Post →</a></p>
+    {% endif %}
+    
+    {# Render rest of content #}
+    {% if content_parts | length > 1 %}
+    {{ content_parts | last | safe }}
+    {% endif %}
 </div>
 {% endblock content %}

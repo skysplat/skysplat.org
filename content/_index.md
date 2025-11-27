@@ -18,12 +18,11 @@ description = "Your hub for 3D Gaussian Splatting in Blender and beyond"
   </div>
 </div>
 
-<div class="hero-image-container">
-  <div class="progressive-image-wrapper" data-lazy="true">
-    <img class="img-small" src="/images/lighthouse_rendered1_small.png" alt="Lighthouse 3DGS Render" />
-    <img class="img-large" data-src="/images/lighthouse_rendered1_medium.png" alt="Lighthouse 3DGS Render" />
-  </div>
+<div class="hero-image-container" style="text-align: center;">
+  <img src="/images/William_Rex_3dgs.gif" alt="William Rex 3DGS Render" style="max-width: 100%; height: auto;" />
 </div>
+
+<!-- INJECT_LATEST_BLOG_POST -->
 
 ## 🎬 BlenderCon 2025 Talk
 
