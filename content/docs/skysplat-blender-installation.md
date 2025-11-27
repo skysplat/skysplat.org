@@ -25,11 +25,14 @@ This guide will walk you through installing the SkySplat Blender addon and all r
 
 ## Requirements
 
-- Blender 4.0.0 or newer
+- **Blender 5.0.0 or newer** (also compatible with Blender 4.0+)
 - COLMAP (for reconstruction features)
-- [Brush App](https://github.com/ArthurBrussee/brush) from Arthur Brussee
+- [Brush App](https://github.com/ArthurBrussee/brush) binaries (bundled with addon)
 
-**Note**: The [Brush App](https://github.com/ArthurBrussee/brush) for Gaussian Splatting is now bundled with the addon - no separate installation required!
+**New in v0.4.0:**
+- Blender 5.0 compatibility
+- Multi-instance workflow
+- Animated camera creation
 
 ## Installation
 
@@ -84,58 +87,38 @@ The executable will typically be installed to `/usr/bin/colmap`.
 
 **Note:** For SkySplat to work properly, you'll need to know the path to the COLMAP executable. The addon will attempt to auto-detect common installation paths, but you can manually specify the path in the COLMAP panel if needed.
 
-### 3. Install Brush app
+### 3. Fix Brush Binary Permissions
 
-The brush app from [brush app](https://github.com/ArthurBrussee/brush#) is needed for the 3DGS training of the scene. The brush binaries for all mac/linux/windows are included with this addon, however, when Blender installs an addon via a zip file, it changes the permissions on the extracted files (this is for everyone's benefit), and these cannot be executed by default.
+Brush binaries are bundled with the addon for all platforms. On macOS and Linux, you need to make them executable and may need to remove quarantine attributes.
 
-You have 3 options for running brush from this addon:
+#### macOS
 
-#### Option 1: Fix Permissions on Bundled Binaries (Recommended)
+```bash
+# Navigate to the addon binaries directory
+cd ~/Library/Application\ Support/Blender/5.0/scripts/addons/skysplat_blender/binaries/
 
-After installing the SkySplat addon, you'll need to make the bundled brush binaries executable:
+# Make executable
+chmod +x brush_app_mac
 
-**macOS/Linux:**
-1. Open Terminal
-2. Navigate to your Blender addons directory:
-   - **macOS**: `~/Library/Application Support/Blender/4.0/scripts/addons/skysplat_blender/binaries/`
-   - **Linux**: `~/.config/blender/4.0/scripts/addons/skysplat_blender/binaries/`
-3. Make the binary executable:
-   ```bash
-   # For macOS
-   chmod +x brush_app_mac
-   ```
- 
+# Remove quarantine attribute (if you get "Apple could not verify" error)
+xattr -d com.apple.quarantine brush_app_mac
+```
 
-   ```bash
-   # For Linux
-   chmod +x brush_app_linux
-   ```
+#### Linux
 
-**Windows:**
-Windows executables should work without permission changes, but if you encounter issues, right-click on `brush_app_windows.exe` → Properties → Security → and ensure your user has "Full control" permissions.
+```bash
+# Navigate to the addon binaries directory
+cd ~/.config/blender/5.0/scripts/addons/skysplat_blender/binaries/
 
-#### Option 2: Download Pre-compiled Binaries
+# Make executable
+chmod +x brush_app_linux
+```
 
-If you prefer to download the binaries separately, you can get them directly from the Brush repository releases:
+#### Windows
 
-1. **Windows**: Download [brush_app_windows.exe](https://github.com/ArthurBrussee/brush/releases/latest) from Brush Releases
-2. **macOS**: Download [brush_app_macos](https://github.com/ArthurBrussee/brush/releases/latest) from Brush Releases
+No additional steps required - the `.exe` file should work directly.
 
-  On macos, if you get an error something to the effect of "Apple could not verify "brush_app_mac" you may need to remove the quarantine from the downloaded file. This applies to downloads from the brush repo as well as the skysplat repo.
-
-   ```bash
-   xattr -d com.apple.quarantine /path/to/brush_app_mac
-   ```
-3. **Linux**: Download [brush_app_linux](https://github.com/ArthurBrussee/brush/releases/latest) from Brush Releases
-
-You can also get the compiled binaries in the skysplat_blender repo
-1. **Windows**: [brush_app_windows.exe](https://github.com/kyjohnso/skysplat_blender/blob/main/binaries/brush_app_windows.exe)
-2. **macOS (Apple silicon)**: [brush_app_mac](https://github.com/kyjohnso/skysplat_blender/blob/main/binaries/brush_app_mac)
-3. **linux**: [brush_app_linux](https://github.com/kyjohnso/skysplat_blender/blob/main/binaries/brush_app_linux)
-
-**Important**: You will need to know the full path to where you downloaded these binaries, as you'll need to specify this path in the SkySplat 3DGS panel's "Brush Executable" field.
-
-#### Option 3: Clone and Build Brush from Source
+#### Alternative: Build from Source
 
 For the most up-to-date version or if you want to modify the source code:
 
@@ -156,9 +139,9 @@ For the most up-to-date version or if you want to modify the source code:
    - **Windows**: `target/release/brush_app.exe`
    - **macOS/Linux**: `target/release/brush_app`
 
-**Important**: You will need to know the full path to the compiled executable (e.g., `/home/username/brush/target/release/brush_app`) as you'll need to specify this path in the SkySplat 3DGS panel's "Brush Executable" field.
+**Important**: You will need to specify the full path to the compiled executable (e.g., `/home/username/brush/target/release/brush_app`) in the SkySplat 3DGS panel's "Brush Executable" field.
 
-**Note**: The SkySplat addon will automatically attempt to detect the bundled binaries first, then fall back to common build locations like `~/projects/brush/target/release/brush_app`. If none are found, you can manually specify the path in the 3DGS panel.
+**Note**: The SkySplat addon will automatically attempt to detect binaries in the addon's binaries directory first, then fall back to common build locations like `~/projects/brush/target/release/brush_app`. If none are found, you can manually specify the path in the 3DGS panel.
 
 ---
 
@@ -179,6 +162,10 @@ blender
 ```
 
 **Windows:**
+```cmd
+"C:\Program Files\Blender Foundation\Blender 5.0\blender.exe"
+```
+Or for Blender 4.0:
 ```cmd
 "C:\Program Files\Blender Foundation\Blender 4.0\blender.exe"
 ```
@@ -209,7 +196,7 @@ After installation, verify the addon is working:
 ### Common Issues
 
 **Addon doesn't appear after installation**
-- Ensure you're using Blender 4.0 or later
+- Ensure you're using Blender 5.0 or Blender 4.0+
 - Check that the addon is enabled in Preferences
 - Restart Blender
 
