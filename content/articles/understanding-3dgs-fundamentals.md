@@ -202,6 +202,8 @@ The system is trained end-to-end using gradient descent on:
 \]
 </div>
 
+> 🗺️ **Want the whole loop, end to end?** See the [3DGS Training Pipeline reference](/reference/3dgs-training-pipeline.html) — an annotated map from Structure-from-Motion through projection, rasterization, loss, and the clone/split/prune densification logic, marking which stages could run natively in Blender's geometry nodes and which stay custom kernels.
+
 <!-- IMAGE PLACEHOLDER: optimization_loss_visualization.png
 Description: A comprehensive visualization of the optimization process:
 Top row: Training comparison
@@ -300,6 +302,7 @@ Applications include:
 ### Learning Resources
 
 - [Official Paper](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/)
+- [3DGS Training Pipeline reference](/reference/3dgs-training-pipeline.html) — end-to-end pipeline map
 - Video Tutorials
 - Community Examples
 - Research Papers

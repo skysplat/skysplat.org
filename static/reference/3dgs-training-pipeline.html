@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Gaussian Splatting — Training Pipeline</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070b0c;
+    --bg2:#0b1113;
+    --panel:#0f1719;
+    --panel2:#121d20;
+    --ink:#dde6e2;
+    --muted:#7c918b;
+    --faint:#4c605b;
+    --rule:rgba(180,205,198,0.13);
+    --rule2:rgba(180,205,198,0.07);
+    --phos:#54e6a0;     /* native / stock geo nodes */
+    --amber:#ffb454;    /* custom kernel — the fork */
+    --cyan:#52cfe2;     /* data / loops */
+    --rose:#ff7d8a;
+    --grid:rgba(120,170,155,0.045);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(84,230,160,0.06), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(82,207,226,0.05), transparent 55%),
+      var(--bg);
+    background-attachment:fixed;
+    color:var(--ink);
+    font-family:'Spectral',Georgia,serif;
+    font-size:17px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:46px 46px;
+    mask-image:linear-gradient(180deg,rgba(0,0,0,0.6),rgba(0,0,0,0.15));
+  }
+  .wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:64px 28px 120px}
+  .mono{font-family:'IBM Plex Mono',monospace}
+
+  /* ---------- header ---------- */
+  header{margin-bottom:54px;border-bottom:1px solid var(--rule);padding-bottom:30px}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.34em;text-transform:uppercase;color:var(--phos);margin:0 0 16px}
+  h1{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:clamp(30px,5vw,50px);line-height:1.04;letter-spacing:-0.015em;margin:0 0 14px}
+  h1 .dim{color:var(--faint)}
+  .lede{color:var(--muted);max-width:760px;font-size:18px;margin:0}
+  .lede em{color:var(--ink);font-style:italic}
+
+  /* ---------- legend ---------- */
+  .legend{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:26px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--muted)}
+  .legend .key{display:flex;align-items:center;gap:9px}
+  .swatch{width:13px;height:13px;border-radius:3px;flex:none}
+  .sw-phos{background:var(--phos);box-shadow:0 0 10px rgba(84,230,160,0.5)}
+  .sw-amber{background:var(--amber);box-shadow:0 0 10px rgba(255,180,84,0.5)}
+  .sw-data{width:18px;height:2px;background:var(--cyan);border-radius:2px;box-shadow:0 0 8px rgba(82,207,226,0.6)}
+
+  /* ---------- section heads ---------- */
+  .secthead{display:flex;align-items:baseline;gap:16px;margin:64px 0 26px}
+  .secthead .num{font-family:'IBM Plex Mono',monospace;color:var(--faint);font-size:13px}
+  .secthead h2{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:15px;letter-spacing:0.22em;text-transform:uppercase;margin:0;color:var(--ink)}
+  .secthead .rule{flex:1;height:1px;background:var(--rule)}
+
+  /* ---------- schematic ---------- */
+  .schematic{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--rule);border-radius:14px;padding:14px;overflow:hidden}
+  .schematic svg{display:block;width:100%;height:auto}
+  .cap{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--faint);text-align:center;margin-top:12px;letter-spacing:0.05em}
+
+  /* ---------- stage cards ---------- */
+  .stage{position:relative;background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--rule);border-left-width:3px;border-radius:11px;padding:22px 26px 24px;margin:18px 0}
+  .stage.native{border-left-color:var(--phos)}
+  .stage.custom{border-left-color:var(--amber)}
+  .stage.mixed{border-left-color:var(--amber);border-image:linear-gradient(180deg,var(--phos),var(--amber)) 1}
+  .stage.setup{border-left-color:var(--faint)}
+  .st-top{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  .st-id{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:13px;color:var(--bg);background:var(--muted);border-radius:6px;padding:3px 9px;flex:none;margin-top:3px}
+  .stage.native .st-id{background:var(--phos)}
+  .stage.custom .st-id{background:var(--amber)}
+  .stage.mixed .st-id{background:var(--amber)}
+  .st-title{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:19px;letter-spacing:-0.01em;margin:0;flex:1;min-width:240px}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;padding:4px 9px;border-radius:20px;border:1px solid;white-space:nowrap;margin-top:2px}
+  .tag.t-native{color:var(--phos);border-color:rgba(84,230,160,0.4);background:rgba(84,230,160,0.07)}
+  .tag.t-custom{color:var(--amber);border-color:rgba(255,180,84,0.4);background:rgba(255,180,84,0.07)}
+  .tag.t-loop{color:var(--cyan);border-color:rgba(82,207,226,0.4);background:rgba(82,207,226,0.07)}
+  .st-desc{color:var(--muted);margin:14px 0 4px;font-size:16.5px}
+  .st-desc b{color:var(--ink);font-weight:600}
+
+  .io{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 6px;font-family:'IBM Plex Mono',monospace;font-size:12.5px}
+  .io .chip{display:flex;align-items:center;gap:8px;background:rgba(82,207,226,0.06);border:1px solid rgba(82,207,226,0.22);border-radius:7px;padding:6px 11px}
+  .io .chip .lab{color:var(--cyan);font-weight:600}
+  .io .chip .val{color:var(--muted)}
+  .io .arrow{color:var(--faint);align-self:center;font-size:15px}
+
+  .math{margin:16px 0 4px;padding:14px 18px;background:rgba(7,11,12,0.55);border:1px solid var(--rule2);border-radius:9px;overflow-x:auto}
+  .note{font-size:14.5px;color:var(--faint);margin:12px 0 0;border-top:1px dashed var(--rule2);padding-top:11px}
+  .note b{color:var(--muted);font-weight:600}
+  .note .fork{color:var(--amber)}
+  .katex{font-size:1.04em}
+  .katex-display{margin:0.5em 0}
+
+  /* loop banner */
+  .loopband{display:flex;align-items:center;gap:14px;margin:30px 0 6px;padding:12px 18px;border-radius:10px;border:1px dashed rgba(82,207,226,0.45);background:rgba(82,207,226,0.05)}
+  .loopband .lk{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:var(--cyan);font-weight:600;white-space:nowrap}
+  .loopband .lt{color:var(--muted);font-size:15px}
+  .loopband.close{border-style:solid;border-color:var(--rule);background:transparent}
+  .loopwrap{border-left:1px solid rgba(82,207,226,0.25);margin-left:6px;padding-left:18px}
+
+  /* data table */
+  table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:13px;margin-top:8px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule2)}
+  th{color:var(--phos);font-weight:600;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;border-bottom:1px solid var(--rule)}
+  td:first-child{color:var(--ink)}
+  td .s{color:var(--cyan)}
+  td .m{color:var(--muted)}
+  tr:hover td{background:rgba(84,230,160,0.03)}
+
+  a.jump{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(82,207,226,0.3)}
+  ::selection{background:rgba(84,230,160,0.25)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a href="/articles/" class="mono" style="display:inline-block;margin-bottom:34px;color:var(--phos);text-decoration:none;font-size:12.5px;letter-spacing:0.18em;text-transform:uppercase;border:1px solid var(--rule);border-radius:7px;padding:7px 13px">&larr; SkySplat Articles</a>
+
+  <p class="mono" style="margin:0 0 34px;padding:11px 15px;border:1px solid var(--rule);border-left:3px solid var(--amber);border-radius:8px;background:rgba(255,180,84,0.05);color:var(--muted);font-size:12.5px;line-height:1.6;letter-spacing:0.02em">
+    <span style="color:var(--amber);text-transform:uppercase;letter-spacing:0.16em;font-weight:600">Intellectual honesty</span> &nbsp;&middot;&nbsp; This document — its text, layout, math, and diagrams — was 100% generated by Claude Opus 4.8. It should be read as an AI-authored reference map and verified against primary sources before being relied upon.
+  </p>
+
+  <header>
+    <p class="eyebrow">Serious-games / SkySplat reference · build map</p>
+    <h1>3D Gaussian Splatting<br><span class="dim">// training pipeline</span></h1>
+    <p class="lede">The full optimization loop, end to end — <em>where the loops are</em>, <em>what shape the data is in</em> at each hop, and a precise statement of every fundamental operation. Stages are tinted by whether they fall out of stock geometry nodes or are an irreducible custom kernel.</p>
+    <div class="legend">
+      <div class="key"><span class="swatch sw-phos"></span> expressible in stock geometry nodes</div>
+      <div class="key"><span class="swatch sw-amber"></span> irreducible custom C++ / GPU kernel</div>
+      <div class="key"><span class="sw-data"></span> data flowing on edges (shape annotated)</div>
+    </div>
+  </header>
+
+  <!-- ============ SFM (PREPROCESS) ============ -->
+  <div class="secthead"><span class="num mono">00</span><h2>Structure-from-Motion &nbsp;//&nbsp; upstream preprocess</h2><div class="rule"></div></div>
+  <p class="lede" style="margin-bottom:22px">SfM turns <em>unposed</em> images into the posed cameras and sparse cloud that S0/S1 consume — and its color ratio is the <em>inverse</em> of the trainer. The load-bearing algorithms (feature extraction, descriptor matching, the robust geometric solvers, bundle adjustment) are all irreducible kernels; native geometry nodes cover only the connective tissue: loop orchestration (RANSAC, incremental registration as repeat/sim zones), representation (keypoints, tracks, cameras, points as point clouds), reprojection-error / inlier arithmetic, and closed-form projection + two-view triangulation. In practice you never build this — you call <span class="mono">COLMAP</span> or <span class="mono">GLOMAP</span> and import, and feed-forward neural methods (<span class="mono">DUSt3R / MASt3R</span>, <span class="mono">VGGSfM</span>) increasingly replace the whole block with a network that lives entirely outside the node model.</p>
+
+  <div class="schematic">
+    <svg viewBox="0 0 940 300" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Mono',monospace">
+      <defs>
+        <marker id="fah" markerWidth="9" markerHeight="9" refX="7" refY="4.2" orient="auto"><path d="M0,0 L8,4.2 L0,8.4 z" fill="#7c918b"/></marker>
+        <marker id="faha" markerWidth="9" markerHeight="9" refX="7" refY="4.2" orient="auto"><path d="M0,0 L8,4.2 L0,8.4 z" fill="#ffb454"/></marker>
+        <marker id="fahc" markerWidth="9" markerHeight="9" refX="7" refY="4.2" orient="auto"><path d="M0,0 L8,4.2 L0,8.4 z" fill="#52cfe2"/></marker>
+        <style>
+          .fbc{fill:#141b16; stroke:#ffb454; stroke-width:1.4}
+          .fbm{fill:#141914; stroke:#ffb454; stroke-width:1.4; stroke-dasharray:5 3}
+          .fbs{fill:#0e1416; stroke:#4c605b; stroke-width:1.4}
+          .flab{fill:#dde6e2; font-size:13.5px; font-weight:600}
+          .fsub{fill:#7c918b; font-size:10.5px}
+          .fedge{fill:#52cfe2; font-size:10px}
+          .floop{fill:none; stroke:#52cfe2; stroke-width:1.4}
+          .floopa{fill:none; stroke:#ffb454; stroke-width:1.3; stroke-dasharray:4 4}
+          .flooplab{fill:#52cfe2; font-size:10px; font-weight:600}
+          .fconn{stroke:#3a4a46; stroke-width:1.4}
+        </style>
+      </defs>
+
+      <rect class="fbc" x="8"   y="44" width="168" height="62" rx="9"/>
+      <text class="flab" x="22" y="70">F1 · Features</text>
+      <text class="fsub" x="22" y="88">DoG / CNN → descriptors</text>
+
+      <line class="fconn" x1="176" y1="75" x2="194" y2="75" marker-end="url(#faha)"/>
+      <text class="fedge" x="150" y="120">K×(2+128)</text>
+
+      <rect class="fbc" x="196" y="44" width="150" height="62" rx="9"/>
+      <text class="flab" x="210" y="70">F2 · Match</text>
+      <text class="fsub" x="210" y="88">NN + ratio test</text>
+
+      <line class="fconn" x1="346" y1="75" x2="364" y2="75" marker-end="url(#faha)"/>
+      <text class="fedge" x="318" y="120">matches/pair</text>
+
+      <rect class="fbm" x="366" y="44" width="160" height="62" rx="9"/>
+      <text class="flab" x="380" y="70">F3 · Verify</text>
+      <text class="fsub" x="380" y="88">RANSAC ⟳  ·  F/E</text>
+
+      <line class="fconn" x1="526" y1="75" x2="544" y2="75" marker-end="url(#fahc)"/>
+      <text class="fedge" x="498" y="120">inliers+pose</text>
+
+      <rect class="fbm" x="546" y="44" width="170" height="62" rx="9"/>
+      <text class="flab" x="560" y="70">F4 · Incremental map</text>
+      <text class="fsub" x="560" y="88">PnP + triangulate</text>
+      <path class="floop" d="M 631 44 C 631 16, 700 16, 700 44" marker-end="url(#fahc)"/>
+      <text class="flooplab" x="640" y="14">register next ⟳</text>
+
+      <line class="fconn" x1="716" y1="75" x2="734" y2="75" marker-end="url(#fahc)"/>
+      <text class="fedge" x="690" y="120">poses+tracks</text>
+
+      <rect class="fbc" x="736" y="44" width="196" height="62" rx="9"/>
+      <text class="flab" x="750" y="70">F5 · Bundle adjust</text>
+      <text class="fsub" x="750" y="88">sparse NLS · LM+Schur</text>
+
+      <!-- handoff down to S0 -->
+      <path class="fconn" d="M 834 106 L 834 150 L 470 150 L 470 196" fill="none" marker-end="url(#fah)"/>
+      <text class="fedge" x="846" y="138">refined [R|t], K · P×3</text>
+
+      <rect class="fbs" x="300" y="198" width="340" height="52" rx="9"/>
+      <text class="flab" x="320" y="222">→ continues as S0 / S1</text>
+      <text class="fsub" x="320" y="240">posed cameras + sparse cloud · the trainer's inputs</text>
+    </svg>
+    <p class="cap">Amber solid = irreducible kernel · amber dashed = mixed (native loop/arithmetic wrapping a custom solver) · grey = handoff into the main pipeline below</p>
+  </div>
+
+  <div class="stage custom">
+    <div class="st-top"><span class="st-id">F1</span><h3 class="st-title">Feature detection &amp; description</h3><span class="tag t-custom">custom kernel</span></div>
+    <p class="st-desc">Find repeatable keypoints and encode a neighborhood descriptor for each. Classic SIFT takes local extrema of a Difference-of-Gaussians scale space; learned detectors (SuperPoint, ALIKED) regress them with a CNN.</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">images</span><span class="val">N × H × W × 3</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">keypoints</span><span class="val">per img · K × 2</span></span>
+      <span class="chip"><span class="lab">descriptors</span><span class="val">K × 128</span></span>
+    </div>
+    <div class="math">\[ D(x,y,\sigma)=\big(G(k\sigma)-G(\sigma)\big)\!*I,\qquad \text{keypoints}=\text{local extrema in }(x,y,\sigma) \]</div>
+    <p class="note"><b>Why custom.</b> Image convolution + scale-space extrema (or a CNN) — the same wall as D-SSIM. <span class="fork">Not native.</span></p>
+  </div>
+
+  <div class="stage custom">
+    <div class="st-top"><span class="st-id">F2</span><h3 class="st-title">Descriptor matching</h3><span class="tag t-custom">custom kernel</span></div>
+    <p class="st-desc">For each descriptor, find its nearest neighbor in candidate images; keep only confident, mutually-consistent matches (Lowe's ratio against the second-nearest).</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">descriptors</span><span class="val">K × 128</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">matches</span><span class="val">putative corr. / pair</span></span>
+    </div>
+    <div class="math">\[ \text{accept if}\quad \frac{d_{\text{NN}_1}}{d_{\text{NN}_2}}<0.8 \quad\text{and}\quad \text{mutual nearest neighbor} \]</div>
+    <p class="note"><b>Why custom.</b> Nearest-neighbor search in 128-D descriptor space — geometry nodes' "nearest" is 3D-spatial only. <span class="fork">Not native.</span></p>
+  </div>
+
+  <div class="stage mixed">
+    <div class="st-top"><span class="st-id">F3</span><h3 class="st-title">Geometric verification</h3><span class="tag t-native">RANSAC loop native</span><span class="tag t-custom">solver custom</span></div>
+    <p class="st-desc">Reject matches inconsistent with a single two-view geometry: RANSAC samples minimal sets, fits the fundamental/essential matrix, and counts inliers by the epipolar constraint.</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">matches</span><span class="val">per pair</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">verified</span><span class="val">inliers + relative pose</span></span>
+    </div>
+    <div class="math">\[ x'^{\top}F\,x=0,\qquad E=K'^{\top}F\,K,\qquad N_{\text{RANSAC}}=\frac{\log(1-p)}{\log\!\big(1-w^{s}\big)} \]</div>
+    <p class="note"><b>Split.</b> The RANSAC loop is a native <b>repeat zone</b> and the Sampson inlier test is attribute math — but the minimal 5-/8-point solver needs an <span class="fork">SVD</span>. Mixed.</p>
+  </div>
+
+  <div class="stage mixed">
+    <div class="st-top"><span class="st-id">F4</span><h3 class="st-title">Incremental mapping</h3><span class="tag t-native">loop + reproj native</span><span class="tag t-custom">solvers custom</span><span class="tag t-loop">⟳ register loop</span></div>
+    <p class="st-desc">Seed from a strong initial pair, then repeatedly register the next-best image by PnP against existing 3D points, and triangulate new points into the growing model.</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">verified pairs</span><span class="val">+ inliers</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">poses</span><span class="val">registered cams</span></span>
+      <span class="chip"><span class="lab">tracks</span><span class="val">3D points</span></span>
+    </div>
+    <div class="math">\[ \textbf{PnP: }\ \min_{R,t}\sum_j\big\lVert \pi\!\big(K[R\,|\,t]X_j\big)-x_j\big\rVert^2,\qquad \textbf{triangulate: }\ A\,X=0\ \ (\text{DLT, null space}) \]</div>
+    <p class="note"><b>Split.</b> The registration loop is a <b>simulation zone</b> and reprojection is native; 2-view midpoint triangulation is a small native linear solve. But PnP / relative-pose and DLT null-space need <span class="fork">SVD / polynomial solvers</span>. Mixed.</p>
+  </div>
+
+  <div class="stage custom">
+    <div class="st-top"><span class="st-id">F5</span><h3 class="st-title">Bundle adjustment</h3><span class="tag t-custom">custom kernel</span></div>
+    <p class="st-desc">Jointly refine every camera, intrinsic, and 3D point to minimize total reprojection error — the nonlinear least-squares heart of SfM, solved with Levenberg-Marquardt exploiting the camera/point sparsity.</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">poses + points</span><span class="val">all cams, all tracks</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">refined</span><span class="val">[R|t], K, sparse cloud P×3</span></span>
+    </div>
+    <div class="math">\[ \min_{\{C_i\},\{X_j\}}\ \sum_{i,j} v_{ij}\,\rho\!\Big(\big\lVert \pi(C_i,X_j)-x_{ij}\big\rVert^2\Big) \]</div>
+    <div class="math">\[ \textbf{LM normal eqns: }\ (J^{\top}J+\lambda D)\,\delta=-J^{\top}r,\qquad \textbf{sparse Schur complement on the point block} \]</div>
+    <p class="note"><b>Why custom.</b> A sparse nonlinear-least-squares engine — analytic/auto Jacobians plus a large sparse linear solve — with no autodiff and no sparse solver in nodes. <span class="fork">Call Ceres. Emphatically not native.</span></p>
+  </div>
+
+  <div class="loopband close"><span class="lk">⟲ hands off</span><span class="lt">The refined cameras and sparse cloud are exactly the <span class="mono">S0</span> inputs / <span class="mono">S1</span> initialization below. Net: of the six SfM sub-blocks, only the <b style="color:var(--cyan)">orchestration and arithmetic inside F3–F4</b> are native; F1, F2, F5 are wholly custom.</span></div>
+
+  <!-- ============ SCHEMATIC ============ -->
+  <div class="secthead"><span class="num mono">01</span><h2>Bird's-eye schematic &nbsp;//&nbsp; the trainer</h2><div class="rule"></div></div>
+  <div class="schematic">
+    <svg viewBox="0 0 940 1180" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Mono',monospace">
+      <defs>
+        <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.2" orient="auto"><path d="M0,0 L8,4.2 L0,8.4 z" fill="#7c918b"/></marker>
+        <marker id="ahc" markerWidth="9" markerHeight="9" refX="7" refY="4.2" orient="auto"><path d="M0,0 L8,4.2 L0,8.4 z" fill="#52cfe2"/></marker>
+        <marker id="aha" markerWidth="9" markerHeight="9" refX="7" refY="4.2" orient="auto"><path d="M0,0 L8,4.2 L0,8.4 z" fill="#ffb454"/></marker>
+        <style>
+          .box{rx:9; stroke-width:1.4}
+          .bn{fill:#0f1719; stroke:#54e6a0}
+          .bc{fill:#141b16; stroke:#ffb454}
+          .bs{fill:#0e1416; stroke:#4c605b}
+          .bm{fill:#141914; stroke:#ffb454; stroke-dasharray:5 3}
+          .lab{fill:#dde6e2; font-size:14px; font-weight:600}
+          .sub{fill:#7c918b; font-size:11px}
+          .edge{fill:#52cfe2; font-size:10.5px}
+          .loop{fill:none; stroke:#52cfe2; stroke-width:1.5}
+          .loopa{fill:none; stroke:#ffb454; stroke-width:1.4; stroke-dasharray:4 4}
+          .looplab{fill:#52cfe2; font-size:11px; font-weight:600}
+          .conn{stroke:#3a4a46; stroke-width:1.4}
+        </style>
+      </defs>
+
+      <!-- column x center = 330 ; boxes width 300 -->
+      <!-- SETUP -->
+      <rect class="box bs" x="180" y="20" width="300" height="52"/>
+      <text class="lab" x="200" y="42">Inputs</text>
+      <text class="sub" x="200" y="60">N posed images · SfM point cloud</text>
+
+      <line class="conn" x1="330" y1="72" x2="330" y2="104" marker-end="url(#ah)"/>
+      <text class="edge" x="342" y="92">I_gt: N×H×W×3 · {R|t}, K · P×3</text>
+
+      <rect class="box bn" x="180" y="106" width="300" height="52"/>
+      <text class="lab" x="200" y="128">S1 · Initialize Gaussians</text>
+      <text class="sub" x="200" y="146">from SfM points → params</text>
+
+      <!-- TRAINING LOOP ENTRY -->
+      <line class="conn" x1="330" y1="158" x2="330" y2="196" marker-end="url(#ahc)"/>
+      <text class="edge" x="342" y="180">model: M×59</text>
+
+      <!-- loop region background -->
+      <rect x="150" y="198" width="520" height="700" rx="14" fill="none" stroke="#52cfe2" stroke-opacity="0.28" stroke-dasharray="6 5"/>
+      <text class="looplab" x="166" y="218">▼ TRAINING LOOP</text>
+
+      <rect class="box bn" x="180" y="232" width="300" height="48"/>
+      <text class="lab" x="200" y="252">S2 · Sample a view</text>
+      <text class="sub" x="200" y="269">pick camera k ∈ 1…N</text>
+      <line class="conn" x1="330" y1="280" x2="330" y2="312" marker-end="url(#ah)"/>
+
+      <rect class="box bn" x="180" y="314" width="300" height="48"/>
+      <text class="lab" x="200" y="334">S3 · Transform + project</text>
+      <text class="sub" x="200" y="351">EWA: μ→μ′,  Σ→Σ′</text>
+      <text class="edge" x="488" y="338">μ′:M×2 Σ′:M×3</text>
+      <line class="conn" x1="330" y1="362" x2="330" y2="394" marker-end="url(#ah)"/>
+
+      <rect class="box bn" x="180" y="396" width="300" height="48"/>
+      <text class="lab" x="200" y="416">S4 · SH → view-dep. color</text>
+      <text class="sub" x="200" y="433">evaluate Yₗᵐ(d)</text>
+      <text class="edge" x="488" y="420">c:M×3</text>
+      <line class="conn" x1="330" y1="444" x2="330" y2="476" marker-end="url(#aha)"/>
+
+      <rect class="box bc" x="180" y="478" width="300" height="48"/>
+      <text class="lab" x="200" y="498">S5 · Tile bin + depth sort</text>
+      <text class="sub" x="200" y="515">16×16 tiles · key sort</text>
+      <text class="edge" x="488" y="502">keys: ≥M</text>
+      <line class="conn" x1="330" y1="526" x2="330" y2="558" marker-end="url(#aha)"/>
+
+      <!-- rasterize with inner loop -->
+      <rect class="box bc" x="180" y="560" width="300" height="56"/>
+      <text class="lab" x="200" y="582">S6 · Rasterize (α-composite)</text>
+      <text class="sub" x="200" y="600">front-to-back "over"</text>
+      <!-- inner self-loop -->
+      <path class="loop" d="M 480 574 C 545 568, 545 608, 480 602" marker-end="url(#ahc)"/>
+      <text class="looplab" x="498" y="572">per-pixel</text>
+      <text class="edge" x="498" y="592" font-size="9.5">×Nₚ, early-out</text>
+      <text class="edge" x="498" y="606" font-size="9.5">T &lt; 1e-4</text>
+      <line class="conn" x1="330" y1="616" x2="330" y2="648" marker-end="url(#ah)"/>
+      <text class="edge" x="342" y="636">Î: H×W×3 (+T,n aux)</text>
+
+      <rect class="box bm" x="180" y="650" width="300" height="48"/>
+      <text class="lab" x="200" y="670">S7 · Loss</text>
+      <text class="sub" x="200" y="687">(1−λ)·L₁  +  λ·D-SSIM</text>
+      <line class="conn" x1="330" y1="698" x2="330" y2="730" marker-end="url(#aha)"/>
+      <text class="edge" x="342" y="718">∂L/∂Î : H×W×3</text>
+
+      <rect class="box bc" x="180" y="732" width="300" height="48"/>
+      <text class="lab" x="200" y="752">S8 · Backward (analytic)</text>
+      <text class="sub" x="200" y="769">reverse composite → grads</text>
+      <line class="conn" x1="330" y1="780" x2="330" y2="812" marker-end="url(#ah)"/>
+      <text class="edge" x="342" y="800">∂L/∂θ : M×59</text>
+
+      <rect class="box bn" x="180" y="814" width="300" height="48"/>
+      <text class="lab" x="200" y="834">S9 · Adam step</text>
+      <text class="sub" x="200" y="851">per-group lr · pos lr decays</text>
+
+      <!-- OUTER LOOP arc: S9 -> S2 -->
+      <path class="loop" d="M 180 838 C 70 838, 70 256, 178 256" marker-end="url(#ahc)"/>
+      <text class="looplab" x="40" y="540" transform="rotate(-90 40 540)">×K  ≈ 30,000 iterations</text>
+
+      <!-- PERIODIC branch to densify -->
+      <path class="loopa" d="M 480 838 C 720 838, 720 980, 480 980"/>
+      <rect class="box bn" x="180" y="956" width="300" height="48"/>
+      <text class="lab" x="200" y="976">S10 · Densify (clone/split/prune)</text>
+      <text class="sub" x="200" y="993">every ~100 iters · mutates M</text>
+      <path class="loopa" d="M 180 980 C 30 980, 30 880, 178 852" marker-end="url(#aha)"/>
+      <text class="looplab" x="612" y="912" fill="#ffb454">every 100 it</text>
+      <text class="looplab" x="612" y="928" fill="#ffb454" font-size="10">M changes here</text>
+
+      <!-- output -->
+      <line class="conn" x1="330" y1="1004" x2="330" y2="1040" marker-end="url(#ah)"/>
+      <rect class="box bs" x="180" y="1042" width="300" height="52"/>
+      <text class="lab" x="200" y="1064">Trained splat model</text>
+      <text class="sub" x="200" y="1082">M×59 · render at any view</text>
+    </svg>
+    <p class="cap">Green = stock geometry nodes · amber = the C++/GPU kernels that must be forked · cyan edges carry data (M = live Gaussian count, grows ~10⁴ → ~10⁶)</p>
+  </div>
+
+  <!-- ============ SETUP ============ -->
+  <div class="secthead"><span class="num mono">02</span><h2>Setup &nbsp;//&nbsp; runs once</h2><div class="rule"></div></div>
+
+  <div class="stage setup">
+    <div class="st-top"><span class="st-id">S0</span><h3 class="st-title">Inputs</h3><span class="tag t-native">given data</span></div>
+    <p class="st-desc">A multi-view capture, posed by Structure-from-Motion (COLMAP). Each training datum is an image plus its calibrated camera; a sparse point cloud seeds the model.</p>
+    <div class="io">
+      <span class="chip"><span class="lab">images</span><span class="val">N × H × W × 3</span></span>
+      <span class="chip"><span class="lab">extrinsics</span><span class="val">[R | t], R∈SO(3), t∈ℝ³</span></span>
+      <span class="chip"><span class="lab">intrinsics</span><span class="val">K = (f_x, f_y, c_x, c_y)</span></span>
+      <span class="chip"><span class="lab">SfM points</span><span class="val">P × 3 (+ rgb)</span></span>
+    </div>
+    <div class="math">\[ \mathbf{x}_{\text{cam}} = R\,\mathbf{x}_{\text{world}} + t, \qquad \begin{bmatrix} u \\ v \end{bmatrix} = \begin{bmatrix} f_x\, x_{\text{cam}}/z_{\text{cam}} + c_x \\[2pt] f_y\, y_{\text{cam}}/z_{\text{cam}} + c_y \end{bmatrix} \]</div>
+    <p class="note"><b>Note.</b> Poses and intrinsics are the fixed conditioning of the problem; only the Gaussians below are optimized.</p>
+  </div>
+
+  <div class="stage native">
+    <div class="st-top"><span class="st-id">S1</span><h3 class="st-title">Initialize the Gaussian model</h3><span class="tag t-native">stock nodes</span></div>
+    <p class="st-desc">Each SfM point becomes a Gaussian. The model is a <b>point cloud with per-point attributes</b> — this is the central object, and it maps one-to-one onto a geometry-nodes point domain.</p>
+    <div class="io">
+      <span class="chip"><span class="lab">mean</span><span class="val">μ ∈ ℝ³</span></span>
+      <span class="chip"><span class="lab">log-scale</span><span class="val">s ∈ ℝ³</span></span>
+      <span class="chip"><span class="lab">quat</span><span class="val">q ∈ ℝ⁴</span></span>
+      <span class="chip"><span class="lab">opacity logit</span><span class="val">o ∈ ℝ</span></span>
+      <span class="chip"><span class="lab">SH coeffs</span><span class="val">c ∈ ℝ^{(L+1)²×3}</span></span>
+    </div>
+    <p class="st-desc">Scale and opacity are stored pre-activation so the optimizer works unconstrained; the covariance is built so it is <b>positive-semidefinite by construction</b>:</p>
+    <div class="math">\[ S=\operatorname{diag}\!\big(e^{s}\big),\quad \alpha_{\max}=\sigma(o),\qquad \Sigma \;=\; R(q)\,S\,S^{\top}R(q)^{\top}\in\mathbb{R}^{3\times3} \]</div>
+    <p class="note"><b>Shape.</b> With SH degree <span class="mono">L = 3</span> → 16 coeffs × 3 channels = 48, the per-Gaussian vector is <span class="mono">3 + 3 + 4 + 1 + 48 = 59</span> floats. Model tensor: <span class="mono">M × 59</span>, with <span class="mono">M</span> initialized to <span class="mono">P</span> (~10⁴) and free to change at S10.</p>
+  </div>
+
+  <!-- ============ TRAINING LOOP ============ -->
+  <div class="secthead"><span class="num mono">03</span><h2>Training loop &nbsp;//&nbsp; ×K (≈30k)</h2><div class="rule"></div></div>
+
+  <div class="loopband"><span class="lk">⟳ outer loop</span><span class="lt">Repeat S2–S9 for <span class="mono">k = 1 … K</span>. State carried across iterations: the model <span class="mono">M×59</span> plus Adam moments. In geometry nodes this is a <b style="color:var(--cyan)">simulation/repeat zone</b>.</span></div>
+
+  <div class="loopwrap">
+
+  <div class="stage native">
+    <div class="st-top"><span class="st-id">S2</span><h3 class="st-title">Sample a training view</h3><span class="tag t-native">stock nodes</span></div>
+    <p class="st-desc">Draw one camera (and its ground-truth image) from the <span class="mono">N</span> views — usually a shuffled epoch order.</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">model</span><span class="val">M×59</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">view k</span><span class="val">[R|t]ₖ, Kₖ, I_gtₖ : H×W×3</span></span>
+    </div>
+    <p class="note"><b>Note.</b> Feeds the GT image via the image sequence frame index; the camera can live as one point in a "cameras" point cloud (pose + intrinsics as attributes).</p>
+  </div>
+
+  <div class="stage native">
+    <div class="st-top"><span class="st-id">S3</span><h3 class="st-title">View transform &amp; projection (EWA splatting)</h3><span class="tag t-native">stock nodes · tedious</span></div>
+    <p class="st-desc">Each 3D Gaussian is pushed into screen space. The mean projects by the camera; the covariance can't be projected exactly, so the <b>local affine approximation</b> of the projection (its Jacobian) transports it.</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">μ,Σ</span><span class="val">M×3, M×3×3</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">μ′</span><span class="val">M×2 (screen)</span></span>
+      <span class="chip"><span class="lab">Σ′</span><span class="val">M×2×2 → conic M×3</span></span>
+      <span class="chip"><span class="lab">depth</span><span class="val">M×1</span></span>
+    </div>
+    <p class="st-desc">With camera-space mean <span class="mono">t = (t_x,t_y,t_z)</span>, the projection Jacobian and the screen-space covariance are</p>
+    <div class="math">\[ J=\begin{bmatrix} f_x/t_z & 0 & -f_x t_x/t_z^{2}\\[2pt] 0 & f_y/t_z & -f_y t_y/t_z^{2} \end{bmatrix}, \qquad \Sigma' \;=\; J\,R\,\Sigma\,R^{\top}J^{\top}\ \big|_{2\times2}\;+\;h\,I \]</div>
+    <p class="st-desc">The <b>conic</b> is the inverse 2D covariance used to evaluate the splat at a pixel; writing \(\Sigma'=\begin{psmallmatrix}a&b\\b&c\end{psmallmatrix}\):</p>
+    <div class="math">\[ \Sigma'^{-1}=\frac{1}{ac-b^{2}}\begin{bmatrix} c & -b\\ -b & a\end{bmatrix},\qquad r \;=\; \big\lceil 3\sqrt{\lambda_{\max}(\Sigma')}\,\big\rceil \quad\text{(footprint radius)} \]</div>
+    <p class="note"><b>Note.</b> The <span class="mono">+hI</span> term (h≈0.3 px²) is a low-pass dilation guaranteeing each splat covers ≥1 pixel — it suppresses aliasing of sub-pixel Gaussians. <b>Doable in nodes</b> as matrix attribute math, but verbose.</p>
+  </div>
+
+  <div class="stage native">
+    <div class="st-top"><span class="st-id">S4</span><h3 class="st-title">Spherical-harmonic color</h3><span class="tag t-native">stock nodes · tedious</span></div>
+    <p class="st-desc">View-dependent radiance: each Gaussian's color is an SH expansion evaluated along the viewing direction <span class="mono">d</span> (unit vector camera→Gaussian).</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">SH coeffs</span><span class="val">M×16×3</span></span><span class="chip"><span class="lab">dir</span><span class="val">d = (μ−o)/‖μ−o‖</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">color</span><span class="val">c : M×3</span></span>
+    </div>
+    <div class="math">\[ c_i \;=\; \operatorname{clamp}\!\Big( 0.5+\sum_{\ell=0}^{L}\sum_{m=-\ell}^{\ell} c_i^{\ell m}\,Y_\ell^{m}(d),\; 0\Big), \qquad Y_0^{0}=0.2820948 \]</div>
+    <p class="note"><b>Note.</b> Degree 0 alone gives flat, view-independent color (a good v0). Higher degrees add specular/view variation. <span class="fork">If you skip SH in a first fork, this whole stage disappears.</span></p>
+  </div>
+
+  <div class="stage custom">
+    <div class="st-top"><span class="st-id">S5</span><h3 class="st-title">Tile binning &amp; depth sort</h3><span class="tag t-custom">custom kernel</span></div>
+    <p class="st-desc">Screen is cut into <span class="mono">16×16</span> tiles. Every Gaussian is replicated into each tile its footprint touches, keyed by <span class="mono">(tile_id, depth)</span>; one global sort then yields, per tile, a <b>front-to-back ordered list</b>.</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">μ′, r, depth</span><span class="val">M×2, M, M</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">sorted keys</span><span class="val">≥ M (one per tile-touch)</span></span>
+      <span class="chip"><span class="lab">tile ranges</span><span class="val">#tiles × 2</span></span>
+    </div>
+    <div class="math">\[ \text{key}_{i,\tau}=\big(\underbrace{\tau}_{\text{32b tile}}\,\|\,\underbrace{\text{depth}_i}_{\text{32b}}\big)\in\mathbb{Z}_{64},\qquad \text{sort}\uparrow\ \Rightarrow\ \text{per-tile ordered runs} \]</div>
+    <p class="note"><b>Why custom.</b> Geometry nodes have no per-tile <span class="fork">ordered radix sort</span> over a variable-fanout replication. This is the spatial data-structure step the rasterizer needs.</p>
+  </div>
+
+  <div class="stage custom">
+    <div class="st-top"><span class="st-id">S6</span><h3 class="st-title">Rasterize — alpha compositing</h3><span class="tag t-custom">custom kernel</span><span class="tag t-loop">⟳ inner loop</span></div>
+    <p class="st-desc">The heart of the method. Each pixel walks its tile's sorted list <b>front-to-back</b>, accumulating color weighted by per-Gaussian alpha and remaining transmittance — the volumetric <em>"over"</em> operator — and stops once it is opaque.</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">conic, μ′, c, α_max</span><span class="val">per Gaussian</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">render Î</span><span class="val">H×W×3</span></span>
+      <span class="chip"><span class="lab">aux</span><span class="val">T_final, n_contrib : H×W</span></span>
+    </div>
+    <p class="st-desc">For pixel <span class="mono">p</span>, the i-th Gaussian's evaluated weight and the running transmittance are</p>
+    <div class="math">\[ \alpha_i \;=\; \alpha_{\max,i}\,\exp\!\Big(\!-\tfrac12 (p-\mu'_i)^{\top}\Sigma'^{-1}_i (p-\mu'_i)\Big),\qquad T_i=\prod_{j<i}(1-\alpha_j) \]</div>
+    <div class="math">\[ \hat C(p)=\sum_{i=1}^{N_p} c_i\,\alpha_i\,T_i, \qquad \hat A(p)=\sum_{i=1}^{N_p}\alpha_i T_i, \qquad \textbf{stop when } T_i<10^{-4} \]</div>
+    <p class="note"><b>The inner loop.</b> <span class="mono">N_p</span> = the per-pixel depth-ordered count, variable, terminated early by transmittance. <b>Why custom:</b> ordered scatter-composite with early-out — <span class="fork">no gather-only field model expresses it</span>.</p>
+  </div>
+
+  <div class="stage mixed">
+    <div class="st-top"><span class="st-id">S7</span><h3 class="st-title">Loss</h3><span class="tag t-native">L₁ native</span><span class="tag t-custom">D-SSIM kernel</span></div>
+    <p class="st-desc">A pixel-wise term for fidelity plus a structural term for local contrast/structure, blended.</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">Î, I_gt</span><span class="val">H×W×3</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">scalar</span><span class="val">L</span></span>
+      <span class="chip"><span class="lab">grad</span><span class="val">∂L/∂Î : H×W×3</span></span>
+    </div>
+    <div class="math">\[ \mathcal{L}=(1-\lambda)\,\mathcal{L}_1+\lambda\,\mathcal{L}_{\text{D-SSIM}},\qquad \mathcal{L}_1=\tfrac{1}{|I|}\textstyle\sum_p\lVert \hat C(p)-I_{\text{gt}}(p)\rVert_1,\qquad \lambda\approx0.2 \]</div>
+    <div class="math">\[ \text{SSIM}=\frac{(2\mu_x\mu_y+C_1)(2\sigma_{xy}+C_2)}{(\mu_x^2+\mu_y^2+C_1)(\sigma_x^2+\sigma_y^2+C_2)},\qquad \mathcal{L}_{\text{D-SSIM}}=1-\text{SSIM} \]</div>
+    <p class="note"><b>Note.</b> SSIM statistics are computed over an <span class="mono">11×11</span> Gaussian window → a convolution. <span class="fork">L₁ is native attribute math; the windowed conv + its gradient is the custom piece</span> — drop it for an L₁-only v0.</p>
+  </div>
+
+  <div class="stage custom">
+    <div class="st-top"><span class="st-id">S8</span><h3 class="st-title">Backward pass (analytic)</h3><span class="tag t-custom">custom kernel</span><span class="tag t-loop">⟳ reverse inner</span></div>
+    <p class="st-desc">No autodiff — every gradient is closed-form. The compositing list is walked <b>back-to-front</b>, distributing <span class="mono">∂L/∂Î</span> onto each Gaussian's parameters and chaining back through projection.</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">∂L/∂Î</span><span class="val">H×W×3</span></span><span class="chip"><span class="lab">fwd state</span><span class="val">T_final, lists</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">∂L/∂θ</span><span class="val">M×59</span></span>
+    </div>
+    <p class="st-desc">The load-bearing gradient is alpha's, because raising <span class="mono">αᵢ</span> both adds its own color and dims everything behind it. With <span class="mono">Sᵢ = Σⱼ&gt;ᵢ cⱼαⱼTⱼ</span> (color accumulated behind i):</p>
+    <div class="math">\[ \frac{\partial \hat C}{\partial \alpha_i}=c_i\,T_i-\frac{S_i}{1-\alpha_i},\qquad \frac{\partial \alpha_i}{\partial \alpha_{\max,i}}=G_i,\qquad \frac{\partial \alpha_i}{\partial G_i}=\alpha_{\max,i} \]</div>
+    <p class="st-desc">then the chain unwinds through the Gaussian, the conic, the covariance, and the projection:</p>
+    <div class="math">\[ \frac{\partial \mathcal L}{\partial G_i}\!\to\!\frac{\partial \mathcal L}{\partial \mu'_i},\frac{\partial \mathcal L}{\partial \Sigma'^{-1}_i} \;\to\; \frac{\partial \mathcal L}{\partial \Sigma'_i}\!\to\!\frac{\partial \mathcal L}{\partial \Sigma_i}\;(\text{via } JR)\;\to\;\frac{\partial \mathcal L}{\partial q_i},\frac{\partial \mathcal L}{\partial s_i};\quad \frac{\partial \mathcal L}{\partial \mu'_i}\!\to\!\frac{\partial \mathcal L}{\partial \mu_i} \]</div>
+    <p class="note"><b>Why custom &amp; why it's the work.</b> This is the hand-derived adjoint of S3–S6. <span class="fork">Gradient-checking every term against finite differences is the real labor of the fork.</span> <span class="mono">Tᵢ</span> is recovered from the stored final transmittance while walking backward.</p>
+  </div>
+
+  <div class="stage native">
+    <div class="st-top"><span class="st-id">S9</span><h3 class="st-title">Optimizer — Adam</h3><span class="tag t-native">stock nodes</span></div>
+    <p class="st-desc">Per-parameter adaptive step with bias-corrected first/second moments. Moments persist across iterations as extra attributes in the loop's state.</p>
+    <div class="io">
+      <span class="chip arrow">in</span><span class="chip"><span class="lab">g = ∂L/∂θ</span><span class="val">M×59</span></span><span class="chip"><span class="lab">m, v</span><span class="val">M×59 each</span></span>
+      <span class="arrow">→</span>
+      <span class="chip"><span class="lab">θ′</span><span class="val">M×59</span></span>
+    </div>
+    <div class="math">\[ m\leftarrow\beta_1 m+(1-\beta_1)g,\quad v\leftarrow\beta_2 v+(1-\beta_2)g^2,\quad \hat m=\tfrac{m}{1-\beta_1^{k}},\ \hat v=\tfrac{v}{1-\beta_2^{k}} \]</div>
+    <div class="math">\[ \theta \leftarrow \theta-\eta\,\frac{\hat m}{\sqrt{\hat v}+\epsilon}, \qquad \eta_{\text{pos}}(t)=\eta_0\Big(\tfrac{\eta_T}{\eta_0}\Big)^{t/T}\ \text{(exp. decay; other groups fixed)} \]</div>
+    <p class="note"><b>Note.</b> Each parameter group (position, SH, opacity, scale, rotation) carries its own learning rate; only position's decays. <b>Fully buildable in attribute-math nodes.</b></p>
+  </div>
+
+  </div><!-- /loopwrap -->
+
+  <div class="loopband close"><span class="lk">⟲ back to S2</span><span class="lt">Next iteration with the updated model. The loop is the optimization; one pass over <span class="mono">K≈30k</span> steps is a full train.</span></div>
+
+  <!-- ============ PERIODIC ============ -->
+  <div class="secthead"><span class="num mono">04</span><h2>Adaptive density control &nbsp;//&nbsp; periodic</h2><div class="rule"></div></div>
+
+  <div class="loopband"><span class="lk">⟳ every ~100 it</span><span class="lt">Interleaved into the loop (after warm-up ~500, until ~15k). This is the <b style="color:var(--amber)">only stage that changes M</b> — it grows detail where the scene is under-fit and culls waste.</span></div>
+
+  <div class="stage native">
+    <div class="st-top"><span class="st-id">S10</span><h3 class="st-title">Clone · split · prune</h3><span class="tag t-native">stock nodes</span></div>
+    <p class="st-desc">Decisions are driven by the accumulated <b>view-space positional gradient</b> — high gradient means the region wants more representational capacity.</p>
+    <div class="math">\[ \tau_i \;=\; \big\langle\, \lVert \partial \mathcal L/\partial \mu'_i\rVert \,\big\rangle_{\text{interval}} \;>\; \tau_{\text{th}}\;(\approx2\!\times\!10^{-4}) \;\Rightarrow\; \text{densify } i \]</div>
+    <p class="st-desc">Then by world-size, with <span class="mono">‖e^{s}‖</span> small ⇒ <b>clone</b>, large ⇒ <b>split</b> (two children, shrunk, repositioned by sampling the parent's own distribution):</p>
+    <div class="math">\[ \textbf{split: }\ s' = s-\ln\varphi\ (\varphi\!\approx\!1.6),\qquad \mu' = \mu + R\,S\,\xi,\quad \xi\sim\mathcal N(0,I) \]</div>
+    <div class="math">\[ \textbf{prune: }\ \sigma(o_i)<\epsilon_\alpha\ \ (\approx0.005)\ \ \text{or footprint too large};\qquad \textbf{reset: }\ o\leftarrow\sigma^{-1}(0.01)\ \text{every}\sim3000 \]</div>
+    <div class="io">
+      <span class="chip arrow">effect</span><span class="chip"><span class="lab">M</span><span class="val">grows / shrinks → new M×59</span></span>
+    </div>
+    <p class="note"><b>Note.</b> <b>Clone = Duplicate Elements, prune = Delete Geometry, split = duplicate + scale + jittered resample</b> — all native topology ops. The trigger needs <span class="mono">∂L/∂μ′</span> from S8, accumulated in the loop state.</p>
+  </div>
+
+  <!-- ============ DATA SHAPES ============ -->
+  <div class="secthead"><span class="num mono">05</span><h2>Data-shape ledger</h2><div class="rule"></div></div>
+  <table>
+    <thead><tr><th>Object</th><th>Shape</th><th>Lives where</th></tr></thead>
+    <tbody>
+      <tr><td>Model parameters θ</td><td class="s">M × 59</td><td class="m">μ:3, s:3, q:4, o:1, SH:48 — M ≈ 10⁴→10⁶</td></tr>
+      <tr><td>Adam moments m, v</td><td class="s">M × 59 (×2)</td><td class="m">loop state</td></tr>
+      <tr><td>Gradients ∂L/∂θ</td><td class="s">M × 59</td><td class="m">output of S8</td></tr>
+      <tr><td>Screen means μ′</td><td class="s">M × 2</td><td class="m">S3 → S6</td></tr>
+      <tr><td>Conic (Σ′⁻¹)</td><td class="s">M × 3</td><td class="m">symmetric 2×2, packed</td></tr>
+      <tr><td>Depth / radius</td><td class="s">M × 1 each</td><td class="m">sort keys + culling</td></tr>
+      <tr><td>Per-Gaussian color c</td><td class="s">M × 3</td><td class="m">S4 → S6</td></tr>
+      <tr><td>Sorted tile keys</td><td class="s">≥ M (Σ tile-touches)</td><td class="m">S5; variable fanout</td></tr>
+      <tr><td>Ground-truth view I_gt</td><td class="s">H × W × 3</td><td class="m">one sampled per iteration</td></tr>
+      <tr><td>Render Î (+ aux)</td><td class="s">H × W × 3 (+ T, n: H×W)</td><td class="m">S6; aux retained for S8</td></tr>
+      <tr><td>Loss gradient ∂L/∂Î</td><td class="s">H × W × 3</td><td class="m">S7 → S8</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============ LOOP SUMMARY ============ -->
+  <div class="secthead"><span class="num mono">06</span><h2>The three loop scopes</h2><div class="rule"></div></div>
+  <table>
+    <thead><tr><th>Loop</th><th>Span</th><th>Count / exit</th><th>Nodes-equivalent</th></tr></thead>
+    <tbody>
+      <tr><td><span style="color:var(--cyan)">Outer — training</span></td><td class="m">S2 → S9</td><td class="s">K ≈ 30,000</td><td class="m">simulation / repeat zone</td></tr>
+      <tr><td><span style="color:var(--cyan)">Inner — per pixel</span></td><td class="m">inside S6 / S8</td><td class="s">N_p, early-out T&lt;1e-4</td><td class="m">inside the custom kernel</td></tr>
+      <tr><td><span style="color:var(--amber)">Periodic — densify</span></td><td class="m">branch at S10</td><td class="s">every ~100 it (warm-up→~15k)</td><td class="m">duplicate / delete elements</td></tr>
+    </tbody>
+  </table>
+
+  <p style="color:var(--faint);font-family:'IBM Plex Mono',monospace;font-size:12px;margin-top:54px;border-top:1px solid var(--rule);padding-top:22px;text-align:center;letter-spacing:0.06em">
+    minimal trainer fork ≈ S5 + S6 + S8 (one differentiable rasterizer, fwd+bwd) · everything green stays stock geometry nodes · SfM (F1–F5) is upstream and run externally — COLMAP / GLOMAP / neural
+  </p>
+
+</div>
+<script>
+  window.addEventListener('load', function(){
+    if (window.renderMathInElement){
+      renderMathInElement(document.body, {
+        delimiters: [
+          {left:'\\[', right:'\\]', display:true},
+          {left:'\\(', right:'\\)', display:false}
+        ],
+        throwOnError:false,
+        macros:{"\\psmallmatrix":"\\begin{smallmatrix}#1\\end{smallmatrix}"}
+      });
+    }
+  });
+</script>
+  <div class="wrap" style="padding-top:0;padding-bottom:48px">
+    <a href="/articles/" class="mono" style="display:inline-block;color:var(--phos);text-decoration:none;font-size:12.5px;letter-spacing:0.18em;text-transform:uppercase;border:1px solid var(--rule);border-radius:7px;padding:7px 13px">&larr; Back to SkySplat Articles</a>
+  </div>
+</body>
+</html>
