@@ -396,12 +396,12 @@ main {
   margin-bottom: 0.5rem;
 }
 
-.page-content .content a {
+.page-content .content a:not(.btn) {
   color: var(--brand-color);
   text-decoration: none;
 }
 
-.page-content .content a:hover {
+.page-content .content a:not(.btn):hover {
   text-decoration: underline;
 }
 
