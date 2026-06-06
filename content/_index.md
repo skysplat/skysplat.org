@@ -80,6 +80,10 @@ Comprehensive guides and API documentation for all SkySplat tools and projects.
 In-depth technical articles about 3DGS research, implementation details, and best practices.
 [Read Articles](/articles/)
 
+### 🗺️ Pipeline Reference
+An end-to-end map of the 3DGS training pipeline — from Structure-from-Motion through the optimization loop — annotated for what could run natively in Blender's geometry nodes.
+[View the 3DGS Training Pipeline](/reference/3dgs-training-pipeline.html)
+
 ## About 3D Gaussian Splatting
 
 3D Gaussian Splatting is a revolutionary technique for real-time rendering of photorealistic 3D scenes. Unlike traditional mesh-based approaches, 3DGS represents scenes as collections of 3D Gaussian functions, enabling:
