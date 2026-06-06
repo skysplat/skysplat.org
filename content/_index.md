@@ -22,6 +22,13 @@ description = "Your hub for 3D Gaussian Splatting in Blender and beyond"
   <img src="/images/dubrovnik_splat_0.png" alt="Dubrovnik Splat 0" style="max-width: 100%; height: auto;" />
 </div>
 
+<div class="cta-box">
+  <h3>🗺️ Featured: The 3DGS Training Pipeline</h3>
+  <p>An end-to-end reference map of 3D Gaussian Splatting — from Structure-from-Motion through the optimization loop — annotated for which stages could run natively in Blender's geometry nodes and which stay irreducible custom kernels.</p>
+  <a href="/reference/3dgs-training-pipeline.html" class="btn btn-primary btn-large" target="_blank" rel="noopener">View the Pipeline Reference →</a>
+  <a href="/articles/3dgs-training-pipeline-reference/" class="btn btn-outline btn-large">Read the intro</a>
+</div>
+
 <!-- INJECT_LATEST_BLOG_POST -->
 
 ## 🎬 BlenderCon 2025 Talk
